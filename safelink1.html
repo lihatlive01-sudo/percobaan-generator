@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safelink 1 - Continue Download</title>
+<style>
+/* ============================================
+   MINIMAL CSS - OPTIMIZED FOR PERFORMANCE
+   ============================================ */
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:#0f0c29;
+  color:#fff;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  min-height:100vh;
+  padding:20px 10px
+}
+
+.content-wrapper{max-width:900px;margin:0 auto}
+
+/* Adblock Message Layer */
+.adblock-message{
+  position:fixed;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:#1a0a2e;
+  z-index:1;
+  text-align:center;
+  padding:40px
+}
+
+.adblock-message h2{
+  font-size:32px;
+  margin-bottom:15px;
+  background:linear-gradient(135deg,#f093fb,#f5576c);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent
+}
+
+.adblock-message p{font-size:18px;color:#cbd5e1;margin-bottom:10px}
+
+.adblock-message .icon{font-size:64px;margin-bottom:20px}
+
+.ad-bait{width:1px;height:1px;position:absolute;top:-9999px;left:-9999px}
+
+/* Header */
+.header-section{
+  text-align:center;
+  margin:30px 0;
+  padding:30px 20px;
+  background:rgba(30,30,60,.6);
+  border-radius:16px;
+  border:2px solid rgba(139,92,246,.3)
+}
+
+.header-section h1{
+  font-size:32px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:10px
+}
+
+.header-section p{color:#cbd5e1;font-size:16px;line-height:1.6}
+
+/* Error Message */
+.error-message{
+  background:linear-gradient(135deg,#dc2626,#b91c1c);
+  color:#fff;
+  padding:20px;
+  border-radius:12px;
+  margin:20px 0;
+  text-align:center;
+  display:none
+}
+
+.error-message.show{display:block}
+
+/* Ad Container */
+.ad-container{
+  background:rgba(30,30,60,.8);
+  padding:20px;
+  margin:25px 0;
+  border-radius:16px;
+  border:2px solid rgba(99,102,241,.3)
+}
+
+.ad-label{
+  color:#a5b4fc;
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:8px
+}
+
+.ad-label::before{content:"📢";font-size:16px}
+
+.ad-content{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:250px;
+  background:rgba(20,20,40,.5);
+  border-radius:12px;
+  padding:15px
+}
+
+.countdown-timer{
+  margin-top:15px;
+  padding:12px 20px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  border-radius:8px;
+  text-align:center;
+  font-weight:bold;
+  font-size:16px;
+  gap:10px
+}
+
+.countdown-timer.completed{
+  background:linear-gradient(135deg,#11998e,#38ef7d)
+}
+
+/* Instruction Box */
+.instruction-box{
+  background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.2));
+  padding:25px;
+  border-radius:16px;
+  margin:25px 0;
+  border-left:5px solid #8b5cf6
+}
+
+.instruction-box h3{
+  color:#c4b5fd;
+  margin-bottom:12px;
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+
+.instruction-box p{color:#e0e7ff;line-height:1.8;font-size:15px}
+
+/* Timer Buttons */
+.timer-container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:20px;
+  margin:40px 0;
+  padding:30px 20px;
+  background:rgba(30,30,60,.6);
+  border-radius:16px
+}
+
+.timer-btn{
+  background:linear-gradient(135deg,#1e3a8a,#3b82f6);
+  border:2px solid #60a5fa;
+  color:#fff;
+  padding:25px 15px;
+  border-radius:16px;
+  cursor:pointer;
+  font-size:18px;
+  font-weight:600;
+  box-shadow:0 4px 20px rgba(59,130,246,.3);
+  transition:all .3s
+}
+
+.timer-btn:hover{
+  transform:translateY(-5px) scale(1.05);
+  box-shadow:0 8px 30px rgba(59,130,246,.5);
+  border-color:#93c5fd
+}
+
+.timer-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+.timer-btn.active{
+  background:linear-gradient(135deg,#059669,#10b981);
+  border-color:#34d399
+}
+
+/* Overlay */
+.overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.95);
+  z-index:1000;
+  overflow-y:auto
+}
+
+.overlay-content{
+  max-width:600px;
+  margin:50px auto;
+  padding:40px 20px;
+  text-align:center
+}
+
+.overlay-content h3{
+  font-size:28px;
+  margin-bottom:20px;
+  background:linear-gradient(135deg,#f093fb,#f5576c);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent
+}
+
+.overlay button{
+  margin-top:30px;
+  padding:15px 40px;
+  background:linear-gradient(135deg,#ec4899,#8b5cf6);
+  border:none;
+  color:#fff;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:16px;
+  font-weight:600;
+  box-shadow:0 4px 20px rgba(236,72,153,.4);
+  transition:all .3s
+}
+
+.overlay button:hover{
+  transform:scale(1.05);
+  box-shadow:0 6px 30px rgba(236,72,153,.6)
+}
+
+.overlay button:disabled{opacity:.5;cursor:not-allowed}
+
+.loading{
+  display:inline-block;
+  width:20px;
+  height:20px;
+  border:3px solid rgba(255,255,255,.3);
+  border-radius:50%;
+  border-top-color:#fff;
+  animation:spin 1s linear infinite
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Social Bar */
+#social-bar-container{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10000;
+  width:100%;
+  max-width:728px
+}
+
+/* Hidden */
+.hidden{display:none!important}
+
+/* Responsive */
+@media(max-width:768px){
+  .timer-btn{font-size:14px;padding:20px 10px}
+  .ad-content{min-height:200px}
+}
+</style>
+</head>
+<body>
+
+<!-- Adblock Detection Layer -->
+<div class="adblock-message" id="adblockMessage">
+  <div class="icon">🚫</div>
+  <h2>Matikan AdBlock</h2>
+  <p>Untuk melanjutkan download</p>
+  <p style="font-size:14px;color:#94a3b8;margin-top:10px">Disable your ad blocker to continue</p>
+</div>
+
+<!-- Ad Bait -->
+<div class="ad-bait advertisment ad-banner"></div>
+
+<!-- Main Content -->
+<div class="content-wrapper hidden" id="mainContent">
+  <div class="header-section">
+    <h1>⏳ Continue to Download</h1>
+    <p>Mohon tunggu dan lihat iklan sponsor kami untuk melanjutkan download</p>
+  </div>
+
+  <div class="error-message" id="errorMessage"></div>
+
+  <!-- Social Bar -->
+  <div id="social-bar-container">
+    <script src="https://pl28691838.effectivegatecpm.com/78/fa/46/78fa4651e68597e51185aeb9981ee52a.js"></script>
+  </div>
+
+  <!-- AD CONTAINER 1 - UPDATED -->
+  <div class="ad-container" id="adContainer1">
+    <div class="ad-label">Sponsor Advertisement</div>
+    <div class="ad-content">
+      <script>
+        atOptions = {
+          'key' : '0b714558ef21a12cefd561f7e720a14b',
+          'format' : 'iframe',
+          'height' : 250,
+          'width' : 300,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/0b714558ef21a12cefd561f7e720a14b/invoke.js"></script>
+    </div>
+    <div class="countdown-timer" id="countdown1">
+      <span>⏱️</span><span>Tunggu <strong id="timer1">10</strong> detik</span>
+    </div>
+  </div>
+
+  <div class="instruction-box">
+    <h3>📌 Cara Melanjutkan:</h3>
+    <p>1. Tunggu hingga semua timer iklan selesai<br>
+       2. Pilih salah satu tombol di bawah<br>
+       3. Salah satu tombol akan membawa Anda ke langkah berikutnya!</p>
+  </div>
+
+  <!-- AD CONTAINER 2 - ORIGINAL (akan diganti nanti) -->
+  <div class="ad-container" id="adContainer2">
+    <div class="ad-label">Featured Content</div>
+    <div class="ad-content">
+      <script async data-cfasync="false" src="//pl28014399.effectivegatecpm.com/d766b94dacbdcb1a47c99b9f9bdd27a8/invoke.js"></script>
+      <div id="container-d766b94dacbdcb1a47c99b9f9bdd27a8"></div>
+    </div>
+    <div class="countdown-timer" id="countdown2">
+      <span>⏱️</span><span>Tunggu <strong id="timer2">12</strong> detik</span>
+    </div>
+  </div>
+
+  <div class="timer-container" id="timers"></div>
+
+  <!-- AD CONTAINER 3 - UPDATED -->
+  <div class="ad-container" id="adContainer3">
+    <div class="ad-label">Partner Advertisement</div>
+    <div class="ad-content">
+      <script>
+        atOptions = {
+          'key' : '9a8dfe08f11728aa7f969d9644fbc768',
+          'format' : 'iframe',
+          'height' : 250,
+          'width' : 300,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/9a8dfe08f11728aa7f969d9644fbc768/invoke.js"></script>
+    </div>
+    <div class="countdown-timer" id="countdown3">
+      <span>⏱️</span><span>Tunggu <strong id="timer3">8</strong> detik</span>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="adOverlay">
+  <div class="overlay-content">
+    <h3>🎯 Iklan Sponsor</h3>
+    <p style="color:#cbd5e1;margin-bottom:20px">Terima kasih telah mendukung kami dengan melihat iklan ini</p>
+    
+    <div style="margin:20px 0;padding:15px;background:rgba(30,30,60,.8);border-radius:12px">
+      <script async="async" data-cfasync="false" src="https://pl28691840.effectivegatecpm.com/3c4a8f90d1e4ea48094d5e639467729e/invoke.js"></script>
+      <div id="container-3c4a8f90d1e4ea48094d5e639467729e"></div>
+    </div>
+    
+    <button id="closeOverlayBtn" disabled>
+      <span class="loading"></span> Tunggu <span id="overlayTimer">5</span> detik
+    </button>
+  </div>
+</div>
+
+<!-- EXTERNAL AD SCRIPTS - POPUNDER (UPDATED) -->
+<script src="https://pl28692400.effectivegatecpm.com/4e/42/12/4e42129b9632fd6bb7065c68fe836495.js"></script>
+<script src="https://pl28692402.effectivegatecpm.com/fa/b2/ea/fab2ea271cd6e223736c9f4977573b01.js"></script>
+
+<script>
+// ============================================
+// CONFIGURATION - MINIMAL & FAST
+// ============================================
+const ENCRYPTION_KEY='112233';
+const SMARTLINK="https://www.effectivegatecpm.com/scyy3vbct?key=08c6143a94380122062a22898c62fdc6";
+
+// ============================================
+// DECRYPTION - OPTIMIZED
+// ============================================
+function decryptUrl(e){try{const t=atob(e),n=[];for(let e=0;e<t.length;e++)n.push(String.fromCharCode(t.charCodeAt(e)^ENCRYPTION_KEY.charCodeAt(e%ENCRYPTION_KEY.length)));return n.join('')}catch(e){return null}}
+
+// ============================================
+// ERROR HANDLING
+// ============================================
+function showError(e){const t=document.getElementById('errorMessage');t.textContent=e;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),10000)}
+
+// ============================================
+// ADBLOCK DETECTION - FIXED (CRITICAL BUG FIX)
+// ============================================
+function detectAdblock(){
+  const e=document.querySelector('.ad-bait');
+  if(!e)return!1;
+  const t=e.getBoundingClientRect();
+  return t.height===0||getComputedStyle(e).display==='none'||getComputedStyle(e).visibility==='hidden'
+}
+
+function handleAdblockDetection(){
+  const e=detectAdblock(),
+        t=document.getElementById('adblockMessage'),
+        n=document.getElementById('mainContent');
+  e?(t.style.display='flex',n.classList.add('hidden')):(t.style.display='none',n.classList.remove('hidden'))
+}
+
+// ============================================
+// COUNTDOWN - OPTIMIZED
+// ============================================
+function runCountdown(e,t,n){
+  let r=t;
+  const s=document.getElementById(e),
+        o=s.querySelector('strong'),
+        i=setInterval(()=>{
+          --r;
+          o.textContent=r;
+          if(r<=0){
+            clearInterval(i);
+            s.innerHTML='<span>✅</span><span>Selesai!</span>';
+            s.classList.add('completed');
+            n()
+          }
+        },1000)
+}
+
+// ============================================
+// SAFELINK LOGIC - OPTIMIZED
+// ============================================
+const times=[10,12,15],
+      correctIndex=Math.floor(Math.random()*times.length),
+      timersDiv=document.getElementById('timers'),
+      encoded=location.hash.split('=')[1];
+
+let ad1Done=!1,ad2Done=!1,ad3Done=!1,allAdsViewed=!1;
+
+runCountdown('countdown1',10,()=>{ad1Done=!0;checkAllAds()});
+runCountdown('countdown2',12,()=>{ad2Done=!0;checkAllAds()});
+runCountdown('countdown3',8,()=>{ad3Done=!0;checkAllAds()});
+
+function checkAllAds(){
+  ad1Done&&ad2Done&&ad3Done&&!allAdsViewed&&(allAdsViewed=!0,enableTimerButtons())
+}
+
+function enableTimerButtons(){
+  times.forEach((e,t)=>{
+    const n=document.createElement('button');
+    n.className='timer-btn';
+    n.textContent=`${e} detik`;
+    n.onclick=()=>startTimer(n,e,t);
+    timersDiv.appendChild(n)
+  })
+}
+
+function startTimer(e,t,n){
+  if(e.classList.contains('running'))return;
+  e.classList.add('running');
+  e.disabled=!0;
+  let r=t,
+      s=setInterval(()=>{
+        --r;
+        e.textContent=`${r}s`;
+        if(r<=0){
+          clearInterval(s);
+          e.textContent='BUKA';
+          e.classList.add('active');
+          e.disabled=!1;
+          e.onclick=()=>{
+            if(n===correctIndex){
+              localStorage.setItem('safelink_passed',Date.now().toString());
+              e.textContent='🔄 Memproses...';
+              e.disabled=!0;
+              setTimeout(()=>{
+                const t=decryptUrl(encoded);
+                t?window.location.href=`safelink2.html#dl=${encodeURIComponent(t)}`:showError('Link rusak!')
+              },1000)
+            }else{
+              showOverlay();
+              window.open(SMARTLINK,'_blank');
+              e.textContent='❌ Belum Beruntung';
+              e.style.background='linear-gradient(135deg,#dc2626,#b91c1c)';
+              e.style.borderColor='#ef4444';
+              e.classList.remove('active');
+              e.disabled=!0
+            }
+          }
+        }
+      },1000)
+}
+
+function showOverlay(){
+  const e=document.getElementById('adOverlay');
+  e.style.display='block';
+  document.body.style.overflow='hidden';
+  window.onbeforeunload=()=>'Tunggu hingga iklan selesai untuk melanjutkan!';
+  let t=5,
+      n=document.getElementById('closeOverlayBtn'),
+      r=setInterval(()=>{
+        --t;
+        document.getElementById('overlayTimer').textContent=t;
+        if(t<=0){
+          clearInterval(r);
+          n.disabled=!1;
+          n.innerHTML='✅ Tutup Iklan';
+          n.style.background='linear-gradient(135deg,#10b981,#059669)';
+          window.onbeforeunload=null
+        }
+      },1000)
+}
+
+function closeOverlay(){
+  document.getElementById('adOverlay').style.display='none';
+  document.body.style.overflow='auto';
+  window.onbeforeunload=null
+}
+
+document.getElementById('closeOverlayBtn').onclick=closeOverlay;
+
+// ============================================
+// INITIALIZATION - FIXED
+// ============================================
+setTimeout(()=>{
+  const e=decryptUrl(encoded);
+  e?(handleAdblockDetection(),console.log('✅ URL decrypted')):(showError('Link tidak valid!'),console.error('❌ Decryption failed'))
+},300);
+
+window.addEventListener('focus',()=>setTimeout(handleAdblockDetection,300));
+</script>
+</body>
+</html>
