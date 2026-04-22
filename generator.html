@@ -30,6 +30,7 @@
     .tab { flex: 1; padding: 10px; background: #334155; color: #cbd5e1; text-align: center; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
     .tab.active { background: var(--accent); color: #fff; }
     .tab:hover:not(.active) { background: #475569; }
+    .detected-type { background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; display: inline-block; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -38,43 +39,33 @@
       <h1>🎬 Dual Generator</h1>
       <p>Generate Player Embed & Safelink Download dalam 1 Klik</p>
       <span class="tag">🔐 Secure Mode: Semua URL otomatis dienkripsi untuk proteksi maksimal</span>
-
       <div class="tabs">
         <div class="tab active" onclick="switchTab('player')">📹 Mode 1: Player + Download</div>
         <div class="tab" onclick="switchTab('download')">📥 Mode 2: Download Only</div>
       </div>
-
       <!-- MODE 1 -->
       <div id="tab-player">
         <h2>💡 Mode 1: Custom Player (URL Encrypted)</h2>
-        <p class="note">Support: CDN direct (.mp4/.webm), Twitter/X, & VK. Video akan diputar menggunakan custom player Anda dengan URL terenkripsi + smartlink/iklan agresif.</p>
-
-        <label>🎥 Link Video / Twitter / VK *</label>
-        <input type="text" id="p_url" placeholder="https://cdn.../video.mp4 atau https://x.com/user/status/123">
+        <p class="note">Support: CDN (.mp4/.webm), Twitter/X, VK, Doodstream, Streamwish, Videy, dll</p>
+        <label>🎥 Link Video / Embed *</label>
+        <input type="text" id="p_url" placeholder="Masukkan link..." oninput="detectInputType()">
+        <div id="type-indicator" class="detected-type hidden"></div>
         <div class="note">💡 Auto-detect tipe sumber. Tidak perlu pilih mode manual.</div>
-
-        <label>💬 Link Subtitle (.vtt)</label>
-        <input type="text" id="p_sub" placeholder="(Opsional)">
-
+        <label>💬 Link Subtitle (.vtt) - Hanya untuk CDN</label>
+        <input type="text" id="p_sub" placeholder="(Opsional - hanya untuk video CDN)">
         <label>📥 Link Download</label>
         <input type="text" id="p_dl" placeholder="(Opsional - default: sama dengan video)">
-
         <button class="btn" onclick="generate('player')">⚡ Generate Links (Encrypted)</button>
       </div>
-
       <!-- MODE 2 -->
       <div id="tab-download" class="hidden">
         <h2>💡 Mode 2: Download-Only Generator (URL Encrypted)</h2>
-        <p class="note">Hanya untuk generate link safelink download. Link embed Anda tulis manual di Gist (untuk Doodstream, Streamtape, dll).</p>
-
+        <p class="note">Hanya untuk generate link safelink download.</p>
         <label>📥 Link Download *</label>
         <input type="text" id="d_dl" placeholder="https://...">
-        <div class="note">💡 Link download yang akan dibungkus safelink gate</div>
-
         <button class="btn" onclick="generate('download')">⚡ Generate Safelink (Encrypted)</button>
       </div>
     </div>
-
     <!-- RESULTS -->
     <div class="card hidden" id="resultBox">
       <h2>✅ Hasil Generate</h2>
@@ -84,64 +75,151 @@
           <button class="copy-btn" onclick="copyText('playLink')">📋 Copy</button>
         </div>
         <div id="playLink" class="result-link"></div>
-
         <div class="result-row">
           <span class="result-label">📥 Link Safelink Download (Encrypted)</span>
           <button class="copy-btn" onclick="copyText('safeLink')">📋 Copy</button>
         </div>
         <div id="safeLink" class="result-link"></div>
       </div>
-
       <p style="margin-top:16px; font-size:14px; color:#cbd5e1;">📄 Preview JSON untuk Gist:</p>
       <pre id="jsonPreview"></pre>
       <button class="btn" style="background:#334155; margin-top:12px;" onclick="copyText('jsonPreview')">📋 Copy JSON</button>
     </div>
   </div>
-
   <script>
+    // ============================================
+    // ENCRYPTION CONFIGURATION
+    // ============================================
+    const ENCRYPTION_KEY = '112233'; // 🔐 SAMA DENGAN PLAYER!
+    // ============================================
+    // ENCRYPTION FUNCTION (XOR)
+    // ============================================
+    function encryptUrl(text) {
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length));
+      }
+      return btoa(result);
+    }
+    // ============================================
+    // URL TYPE DETECTION
+    // ============================================
+    function detectType(url) {
+      const u = url.toLowerCase();
+      
+      // CDN Direct files
+      if (/\.(mp4|webm|m3u8|mov|mkv|avi)(\?.*)?$/i.test(u)) return 'cdn';
+      
+      // Twitter/X
+      if (/twitter\.com|x\.com|t\.co/i.test(u)) return 'twitter';
+      
+      // VK
+      if (/vk\.com|vkvideo\.ru/i.test(u)) return 'vk';
+      
+      // Doodstream
+      if (/dood\.(stream|ws|so|re)|doodstream/i.test(u)) return 'embed';
+      
+      // Streamwish
+      if (/streamwish\.(com|to|xyz)|embedwish|flaswish/i.test(u)) return 'embed';
+      
+      // Videy
+      if (/videy\.co|vidrey/i.test(u)) return 'embed';
+      
+      // Streamtape
+      if (/streamtape\.(com|to)|stape|strcloud/i.test(u)) return 'embed';
+      
+      // Dailymotion
+      if (/dailymotion\.com|dai\.ly/i.test(u)) return 'embed';
+      
+      // Vimeo
+      if (/vimeo\.com|vimeocdn/i.test(u)) return 'embed';
+      
+      // Google Drive
+      if (/drive\.google\.com|googleusercontent/i.test(u)) return 'embed';
+      
+      // YouTube
+      if (/youtube\.com|youtu\.be/i.test(u)) return 'youtube';
+      
+      // Generic embed (iframe-compatible)
+      if (/embed|iframe|player|video|watch/i.test(u)) return 'embed';
+      
+      // Default fallback
+      return 'embed';
+    }
+    function detectInputType() {
+      const url = document.getElementById('p_url').value.trim();
+      const indicator = document.getElementById('type-indicator');
+      
+      if (!url) {
+        indicator.classList.add('hidden');
+        return;
+      }
+      
+      const type = detectType(url);
+      const typeLabels = {
+        'cdn': '📹 CDN Video (Direct)',
+        'twitter': '🐦 Twitter/X',
+        'vk': '🔷 VK',
+        'embed': '🌐 External Player (Embed)',
+        'youtube': '📺 YouTube'
+      };
+      
+      indicator.textContent = 'Terdeteksi: ' + (typeLabels[type] || type);
+      indicator.classList.remove('hidden');
+      
+      // Show/hide subtitle input based on type
+      const subLabel = document.querySelector('label[for="p_sub"]') || document.querySelectorAll('label')[2];
+      if (subLabel) {
+        if (type === 'cdn') {
+          subLabel.style.opacity = '1';
+          document.getElementById('p_sub').disabled = false;
+        } else {
+          subLabel.style.opacity = '0.5';
+          document.getElementById('p_sub').disabled = true;
+          document.getElementById('p_sub').value = '';
+        }
+      }
+    }
     // Tab Switching
     function switchTab(mode) {
       document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (mode === 'player' ? i === 0 : i === 1)));
       document.getElementById('tab-player').classList.toggle('hidden', mode !== 'player');
       document.getElementById('tab-download').classList.toggle('hidden', mode !== 'download');
     }
-
-    // URL Type Detection (CDN / Twitter / VK)
-    function detectType(url) {
-      const u = url.toLowerCase();
-      if (/\.(mp4|webm|m3u8)(\?.*)?$/i.test(u)) return 'cdn';
-      if (/twitter\.com|x\.com|t\.co/i.test(u)) return 'twitter';
-      if (/vk\.com|vkvideo\.ru/i.test(u)) return 'vk';
-      return 'cdn'; // fallback default
-    }
-
-    // Generation Logic
+    // ============================================
+    // GENERATION LOGIC
+    // ============================================
     function generate(mode) {
       const resBox = document.getElementById('resultBox');
       let payload = {};
       let playUrl = '', safeUrl = '';
       const origin = window.location.origin;
-
       if (mode === 'player') {
         const v = document.getElementById('p_url').value.trim();
         const s = document.getElementById('p_sub').value.trim();
         const d = document.getElementById('p_dl').value.trim() || v;
+        
         if (!v) return alert('⚠️ Masukkan link video terlebih dahulu!');
         
-        payload = { t: detectType(v), v, s, d, ts: Date.now() };
-        const enc = btoa(JSON.stringify(payload));
-        playUrl = `${origin}/player.html?v=${enc}`;
-        safeUrl = `${origin}/safelink1.html?v=${enc}`;
+        const t = detectType(v);
+        
+        payload = { t, v, s, d, ts: Date.now() };
+        const payloadStr = JSON.stringify(payload);
+        const enc = encryptUrl(payloadStr);
+        
+        playUrl = `${origin}/player.html?s=${encodeURIComponent(enc)}`;
+        safeUrl = `${origin}/safelink1.html?s=${encodeURIComponent(enc)}`;
       } else {
         const d = document.getElementById('d_dl').value.trim();
         if (!d) return alert('⚠️ Masukkan link download!');
         
         payload = { t: 'cdn', v: '', s: '', d, ts: Date.now() };
-        const enc = btoa(JSON.stringify(payload));
+        const payloadStr = JSON.stringify(payload);
+        const enc = encryptUrl(payloadStr);
+        
         playUrl = 'Tidak digunakan di Mode 2';
-        safeUrl = `${origin}/safelink1.html?v=${enc}`;
+        safeUrl = `${origin}/safelink1.html?s=${encodeURIComponent(enc)}`;
       }
-
       // Render Results
       document.getElementById('playLink').textContent = playUrl;
       document.getElementById('safeLink').textContent = safeUrl;
@@ -149,7 +227,6 @@
       resBox.classList.remove('hidden');
       resBox.scrollIntoView({ behavior: 'smooth' });
     }
-
     // Copy Utility with Visual Feedback
     function copyText(id) {
       const el = document.getElementById(id);
