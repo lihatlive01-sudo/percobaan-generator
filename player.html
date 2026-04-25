@@ -1,691 +1,150 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex,nofollow">
-<title>Streaming Player</title>
-<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css"/>
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  font-family: Arial, sans-serif;
-  overflow: hidden;
-  position: relative;
-}
-/* Wrapper untuk kontrol aspect ratio */
-.player-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  position: relative;
-}
-#video-player {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-/* Plyr container */
-.plyr {
-  width: 100%;
-  height: 100%;
-}
-/* Video element fit */
-.plyr video {
-  object-fit: contain !important;
-  width: 100%;
-  height: 100%;
-}
-/* Style untuk tombol download custom */
-.plyr__controls #custom-download-btn {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  background: #00b3ff !important;
-  color: white !important;
-  font-size: 14px;
-  padding: 8px 12px !important;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background 0.3s;
-  margin-left: 4px;
-}
-.plyr__controls #custom-download-btn:hover {
-  background: #0095d9 !important;
-}
-/* Sembunyikan konteks menu download bawaan browser */
-video::-webkit-media-controls-download-button {
-  display: none !important;
-}
-video::-webkit-media-controls-enclosure {
-  overflow: hidden;
-}
-/* ============================================
-   ADBLOCK DETECTION LAYER (Layer 1 - z-index: 1)
-   ============================================ */
-.adblock-message {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
-  z-index: 1;
-  text-align: center;
-  padding: 40px;
-  border-radius: 16px;
-}
-.adblock-message h2 {
-  font-size: 32px;
-  margin-bottom: 15px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-.adblock-message p {
-  font-size: 18px;
-  color: #cbd5e1;
-  margin-bottom: 10px;
-  line-height: 1.6;
-}
-.adblock-message .icon {
-  font-size: 64px;
-  margin-bottom: 20px;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
-}
-/* Ad Bait for Detection */
-.ad-bait {
-  width: 1px;
-  height: 1px;
-  position: absolute;
-  top: -9999px;
-  left: -9999px;
-  opacity: 0;
-}
-/* ============================================
-   VIDEO PLAYER LAYER (Layer 2 - z-index: 100)
-   ============================================ */
-#video-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-}
-/* ============================================
-   EMBED PLAYER LAYER (Layer 2 - z-index: 100)
-   ============================================ */
-#embed-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-  display: none;
-}
-#embed-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: #000;
-}
-/* ============================================
-   NATIVE BANNER LAYER (Layer 3 - z-index: 1000)
-   ============================================ */
-#native-banner-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.9);
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-  display: none;
-  max-width: 90%;
-  max-height: 90%;
-}
-#native-banner-overlay.show {
-  display: block;
-}
-#native-banner-overlay .close-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-  transition: all 0.3s ease;
-}
-#native-banner-overlay .close-btn:hover {
-  background: #ff0000;
-  transform: scale(1.1);
-}
-/* ============================================
-   SOCIAL BAR LAYER (Layer 4 - z-index: 10000)
-   ============================================ */
-#social-bar-container {
-  position: fixed;
-  z-index: 10000;
-  transition: all 0.3s ease;
-}
-/* ============================================
-   LOADING STATE
-   ============================================ */
-.loading {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  text-align: center;
-  color: #cbd5e1;
-}
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(168, 85, 247, 0.2);
-  border-top-color: #a855f7;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-/* Hidden class */
-.hidden {
-  display: none !important;
-}
-/* Responsive */
-@media (max-width: 768px) {
-  .adblock-message h2 {
-    font-size: 24px;
-  }
-  
-  .adblock-message p {
-    font-size: 16px;
-  }
-  
-  .adblock-message .icon {
-    font-size: 48px;
-  }
-}
-</style>
-</head>
-<body>
-<!-- ============================================
-     ADBLOCK DETECTION LAYER (Layer 1)
-     ============================================ -->
-<div class="adblock-message" id="adblockMessage">
-  <div class="icon">🚫</div>
-  <h2>Matikan AdBlock</h2>
-  <p>Untuk melanjutkan menonton</p>
-  <p style="font-size: 14px; color: #94a3b8; margin-top: 10px;">
-    Disable your ad blocker to watch the video
-  </p>
-</div>
-<!-- Ad Bait for Detection -->
-<div class="ad-bait advertisment ad-banner"></div>
-<!-- ============================================
-     VIDEO PLAYER LAYER (Layer 2) - For CDN
-     ============================================ -->
-<div id="video-container" class="hidden">
-  <div class="player-wrapper">
-    <video id="video-player" playsinline controls controlsList="nodownload"></video>
-  </div>
-</div>
-<!-- ============================================
-     EMBED PLAYER LAYER (Layer 2) - For External
-     ============================================ -->
-<div id="embed-container">
-  <iframe id="embed-iframe" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-</div>
-<!-- ============================================
-     NATIVE BANNER LAYER (Layer 3)
-     ============================================ -->
-<div id="native-banner-overlay">
-  <button class="close-btn" onclick="closeNativeBanner()">×</button>
-  <div id="container-f75b64a3696ffc79b00c3dc18ab09657"></div>
-</div>
-<!-- ============================================
-     SOCIAL BAR LAYER (Layer 4)
-     ============================================ -->
-<div id="social-bar-container"></div>
-<!-- ============================================
-     LOADING STATE
-     ============================================ -->
-<div class="loading" id="loading">
-  <div class="spinner"></div>
-  <p>Memuat video...</p>
-</div>
-<!-- ============================================
-     SOCIAL BAR SCRIPT
-     ============================================ -->
-<script src="https://pl28678333.effectivegatecpm.com/db/75/44/db7544154f97c94944a76a5c9557ed7a.js"></script>
-<!-- ============================================
-     NATIVE BANNER SCRIPT
-     ============================================ -->
-<script async="async" data-cfasync="false" src="https://pl28678360.effectivegatecpm.com/f75b64a3696ffc79b00c3dc18ab09657/invoke.js"></script>
-<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+<!-- Tambahkan di <head> player.html -->
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
 <script>
-// ============================================
-// CONFIGURATION
-// ============================================
-const SMARTLINK = "https://www.effectivegatecpm.com/h5jj74n8?key=d0bcbb66f87dc06bac39ce98592d1e02";
-// ============================================
-// ENCRYPTION CONFIGURATION
-// ============================================
-const ENCRYPTION_KEY = '112233'; // 🔐 HARUS SAMA DENGAN GENERATOR!
-// ============================================
-// DECRYPTION FUNCTION
-// ============================================
-function decryptUrl(encrypted) {
-  try {
-    const decoded = atob(encrypted);
-    let result = '';
-    for (let i = 0; i < decoded.length; i++) {
-      result += String.fromCharCode(decoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length));
-    }
-    return result;
-  } catch (e) {
-    console.error('❌ Decryption failed:', e.message);
-    return null;
-  }
-}
-// Test decryption on load
-console.log('🔐 Decryption System Loaded');
-console.log('Key:', ENCRYPTION_KEY);
-// ============================================
-// SMARTLINK CLICK COUNTER SYSTEM
-// ============================================
-let smartlinkClickCounter = 0;
-document.addEventListener('click', (e) => {
-  const isPlayerArea = e.target.closest('.plyr') || 
-                       e.target.closest('.player-wrapper') ||
-                       e.target.closest('.plyr__controls') ||
-                       e.target.closest('video') ||
-                       e.target.closest('#video-container') ||
-                       e.target.closest('#embed-container') ||
-                       e.target.closest('#embed-iframe');
-  
-  if (isPlayerArea) {
-    smartlinkClickCounter++;
-    const currentClick = smartlinkClickCounter;
-    
-    if (currentClick % 3 === 1) {
-      window.open(SMARTLINK, '_blank');
-      console.log(`🔗 SMARTLINK TRIGGERED (Klik ke-${currentClick})`);
-    } else {
-      console.log(`🖱️ Klik normal ke-${currentClick}`);
-    }
-  }
-});
-// ============================================
-// ADBLOCK DETECTION FUNCTIONS
-// ============================================
-function detectAdblock() {
-  const bait = document.querySelector('.ad-bait');
-  if (!bait) return false;
-  
-  const rect = bait.getBoundingClientRect();
-  const isHidden = rect.height === 0 || 
-                   window.getComputedStyle(bait).display === 'none' ||
-                   window.getComputedStyle(bait).visibility === 'hidden';
-  
-  return isHidden;
-}
-function handleAdblockDetection() {
-  const isBlocked = detectAdblock();
-  const videoContainer = document.getElementById('video-container');
-  const embedContainer = document.getElementById('embed-container');
-  const adblockMessage = document.getElementById('adblockMessage');
-  const loading = document.getElementById('loading');
-  
-  if (isBlocked) {
-    videoContainer.classList.add('hidden');
-    embedContainer.style.display = 'none';
-    adblockMessage.style.display = 'flex';
-    loading.classList.add('hidden');
-    console.log('🚫 AdBlock detected: Players hidden');
-    return false;
-  } else {
-    adblockMessage.style.display = 'none';
-    loading.classList.add('hidden');
-    console.log('✅ No AdBlock: Players visible');
-    return true;
-  }
-}
-// ============================================
-// EMBED URL GENERATORS
-// ============================================
-function getEmbedUrl(type, originalUrl) {
-  // Twitter/X
-  if (type === 'twitter') {
-    // Extract tweet ID and create embed URL
-    const match = originalUrl.match(/(?:twitter\.com|x\.com)\/[^/]+\/status\/(\d+)/i);
-    if (match) {
-      return `https://platform.twitter.com/embed/Tweet.html?id=${match[1]}`;
-    }
-    return originalUrl; // Fallback
-  }
-  
-  // VK
-  if (type === 'vk') {
-    // VK uses video_ext.php for embed
-    if (originalUrl.includes('video')) {
-      const match = originalUrl.match(/video(-?\d+)_(\d+)/);
-      if (match) {
-        return `https://vk.com/video_ext.php?oid=${match[1]}&id=${match[2]}`;
-      }
-    }
-    return originalUrl;
-  }
-  
-  // YouTube
-  if (type === 'youtube') {
-    const match = originalUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (match) {
-      return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0`;
-    }
-    return originalUrl;
-  }
-  
-  // Default: return as-is (for Doodstream, Streamwish, Videy, etc.)
-  return originalUrl;
-}
-// ============================================
-// HYBRID PLAYER SETUP
-// ============================================
+const WORKER_URL = 'video-extractor.intip-me69.workers.dev';
 const urlParams = new URLSearchParams(window.location.search);
-const encryptedData = urlParams.get('s');
-if (!encryptedData) {
-  alert('Video tidak ditemukan atau link rusak!');
-  document.getElementById('loading').classList.add('hidden');
-} else {
-  // Decrypt payload
-  const decryptedStr = decryptUrl(encryptedData);
-  let payload = null;
+const token = urlParams.get('token');
+
+// Resolve URL terenkripsi
+async function resolveVideoUrl() {
+  if (!token) {
+    showError('Token tidak ditemukan');
+    return;
+  }
   
   try {
-    payload = JSON.parse(decryptedStr);
-    console.log('✅ Payload decrypted:', payload);
+    const res = await fetch(`${WORKER_URL}/api/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: token })
+    });
+    
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    
+    // Setup video player
+    setupPlayer(data.url, data.source);
+    
   } catch (e) {
-    console.error('❌ Failed to parse payload:', e);
-    // Fallback: treat as direct URL (backward compatibility)
-    payload = { t: 'cdn', v: decryptedStr, s: '', d: decryptedStr };
+    showError('Gagal memuat video: ' + e.message);
   }
+}
+
+// Setup player berdasarkan source
+function setupPlayer(videoUrl, source) {
+  const videoEl = document.getElementById('main-video');
   
-  const { t: type, v: videoUrl, s: subUrl, d: downloadUrl } = payload;
-  
-  console.log('🎬 Type:', type);
-  console.log('🎥 Video URL:', videoUrl ? 'Present' : 'Missing');
-  
-  document.getElementById('loading').classList.add('active');
-  
-  // ==========================================
-  // RENDER BASED ON TYPE
-  // ==========================================
-  
-  if (type === 'cdn') {
-    // ==========================================
-    // CDN - Use Plyr Video Player
-    // ==========================================
-    const videoContainer = document.getElementById('video-container');
-    const embedContainer = document.getElementById('embed-container');
+  if (source === 'cdn' && /\.(mp4|webm)/i.test(videoUrl)) {
+    // Direct video file
+    videoEl.src = videoUrl;
+    videoEl.style.display = 'block';
     
-    videoContainer.classList.remove('hidden');
-    embedContainer.style.display = 'none';
+  } else if (['dood', 'streamtape', 'streamwish'].includes(source)) {
+    // Embed from third-party (gunakan iframe tersembunyi + overlay)
+    const embedUrl = getEmbedUrl(videoUrl, source);
+    showEmbeddedPlayer(embedUrl);
     
-    const video = document.getElementById('video-player');
-    
-    // Add video source
-    const src = document.createElement('source');
-    src.src = videoUrl;
-    src.type = 'video/mp4';
-    video.appendChild(src);
-    
-    // Add subtitle if exists
-    if (subUrl) {
-      const track = document.createElement('track');
-      track.kind = 'subtitles';
-      track.src = subUrl;
-      track.srclang = 'id';
-      track.label = 'Bahasa Indonesia';
-      track.default = true;
-      video.appendChild(track);
-    }
-    
-    // Initialize Plyr
-    const player = new Plyr(video, {
-      controls: [
-        'play-large','play','rewind','fast-forward',
-        'progress','current-time','duration','mute','volume',
-        'captions','settings','fullscreen'
-      ],
-      settings: ['speed','captions'],
-      speed: { selected: 1, options: [0.5,1,1.5,2,3] },
-      disableContextMenu: true,
-      autoplay: false,
-      muted: true,
-      volume: 0.5
-    });
-    
-    // Add custom download button
-    function addCustomButton() {
-      let controls = document.querySelector('.plyr__controls');
-      if (!controls) return false;
-      if (document.getElementById('custom-download-btn')) return true;
-      
-      const customBtn = document.createElement('button');
-      customBtn.id = 'custom-download-btn';
-      customBtn.className = 'plyr__controls__item plyr__control';
-      customBtn.type = 'button';
-      customBtn.setAttribute('data-plyr', 'download');
-      customBtn.setAttribute('aria-label', 'Download via Safelink');
-      customBtn.title = 'Download via Safelink';
-      customBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 13l-4-4h3V3h2v6h3l-4 4zm-7 2h14v2H2v-2z" fill="currentColor"/></svg>';
-      
-      customBtn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const encoded = btoa(downloadUrl || videoUrl);
-        window.open(`safelink1.html#dl=${encoded}`, '_blank');
-      };
-      
-      const rightControls = controls.querySelector('.plyr__controls__item:last-child');
-      if (rightControls) {
-        controls.insertBefore(customBtn, rightControls);
-      } else {
-        controls.appendChild(customBtn);
-      }
-      return true;
-    }
-    
-    const observer = new MutationObserver((mutations) => {
-      const controls = document.querySelector('.plyr__controls');
-      if (controls && !document.getElementById('custom-download-btn')) {
-        if (addCustomButton()) {
-          observer.disconnect();
-        }
-      }
-    });
-    
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    player.on('ready', () => {
-      video.muted = true;
-      player.muted = true;
-      
-      setTimeout(() => {
-        if (addCustomButton()) observer.disconnect();
-      }, 100);
-      
-      setTimeout(() => {
-        if (!document.getElementById('custom-download-btn')) {
-          if (addCustomButton()) observer.disconnect();
-        }
-      }, 1000);
-      
-      setTimeout(() => {
-        const adblockDetected = handleAdblockDetection();
-        if (!adblockDetected) {
-          document.getElementById('loading').classList.add('hidden');
-        }
-      }, 500);
-    });
-    
-    // Disable right-click
-    video.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      return false;
-    });
+  } else if (['x', 'vk'].includes(source)) {
+    // Untuk X/VK: tampilkan pesan + fallback ke embed resmi
+    showFallbackEmbed(videoUrl, source);
     
   } else {
-    // ==========================================
-    // EMBED - Use iframe (Twitter, VK, Doodstream, Streamwish, etc.)
-    // ==========================================
-    const videoContainer = document.getElementById('video-container');
-    const embedContainer = document.getElementById('embed-container');
-    const iframe = document.getElementById('embed-iframe');
-    
-    videoContainer.classList.add('hidden');
-    embedContainer.style.display = 'block';
-    
-    // Get embed URL
-    const embedUrl = getEmbedUrl(type, videoUrl);
-    iframe.src = embedUrl;
-    
-    console.log('🌐 Embed URL:', embedUrl);
-    
-    // Handle adblock
-    setTimeout(() => {
-      handleAdblockDetection();
-    }, 500);
-    
-    // Native banner control for embed
-    iframe.onload = () => {
-      document.getElementById('loading').classList.add('隐藏');
-    };
+    // Fallback: coba langsung sebagai video
+    videoEl.src = videoUrl;
+    videoEl.style.display = 'block';
   }
-}
-// ============================================
-// NATIVE BANNER CONTROL
-// ============================================
-function closeNativeBanner() {
-  const overlay = document.getElementById('native-banner-overlay');
-  if (overlay) {
-    overlay.classList.remove('show');
-  }
-}
-// ============================================
-// SOCIAL BAR RANDOM POSITION
-// ============================================
-function setRandomSocialBarPosition() {
-  const container = document.getElementById('social-bar-container');
-  if (!container) return;
   
-  const position = Math.floor(Math.random() * 4);
-  container.style.top = '';
-  container.style.bottom = '';
-  container.style.left = '';
-  container.style.right = '';
-  container.style.width = 'auto';
-  container.style.height = 'auto';
-  container.style.transform = '';
-  switch(position) {
-    case 0:
-      container.style.top = '10px';
-      container.style.left = '50%';
-      container.style.transform = 'translateX(-50%)';
-      container.style.width = '100%';
-      break;
-    case 1:
-      container.style.bottom = '10px';
-      container.style.left = '50%';
-      container.style.transform = 'translateX(-50%)';
-      container.style.width = '100%';
-      break;
-    case 2:
-      container.style.left = '10px';
-      container.style.top = '50%';
-      container.style.transform = 'translateY(-50%)';
-      container.style.height = '100%';
-      break;
-    case 3:
-      container.style.right = '10px';
-      container.style.top = '50%';
-      container.style.transform = 'translateY(-50%)';
-      container.style.height = '100%';
-      break;
-  }
+  // Tampilkan tombol download (setelah iklan)
+  enableDownloadButton(videoUrl);
 }
-// ============================================
-// NATIVE BANNER FOR VIDEO (CDN only)
-// ============================================
+
+// Helper: Konversi URL ke embed URL untuk platform tertentu
+function getEmbedUrl(url, source) {
+  const embedMap = {
+    'dood': (u) => u.replace(/dood\.(?:stream|watch|so)/, 'dood.watch/e'),
+    'streamtape': (u) => u.replace('streamtape.com', 'streamtape.com/e'),
+    'streamwish': (u) => u.replace(/streamwish\.(?:com|to)/, 'streamwish.to/e')
+  };
+  return embedMap[source]?.(url) || url;
+}
+
+// Fallback untuk X/VK (karena tidak bisa direct)
+function showFallbackEmbed(originalUrl, source) {
+  const container = document.getElementById('player-container');
+  
+  if (source === 'x') {
+    // Gunakan Twitter Publish API oEmbed
+    const embedCode = `<blockquote class="twitter-tweet"><a href="${originalUrl}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>`;
+    container.innerHTML = embedCode;
+    
+  } else if (source === 'vk') {
+    // VK iframe embed (butuh video_id & hash dari URL)
+    const videoId = extractVkVideoId(originalUrl);
+    if (videoId) {
+      container.innerHTML = `<iframe src="https://vk.com/video_ext.php?oid=${videoId}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
+    }
+  }
+  
+  // Tampilkan pesan info
+  const info = document.createElement('p');
+  info.className = 'info-text';
+  info.textContent = '⚠️ Video dari platform ini ditampilkan via embed resmi. Download mungkin terbatas oleh kebijakan platform.';
+  container.after(info);
+}
+
+function extractVkVideoId(url) {
+  // Simple parser: https://vk.com/video-12345_67890 → -12345_67890
+  const match = url.match(/video(-?\d+_\d+)/);
+  return match ? match[1] : null;
+}
+
+// Enable download button dengan timer iklan
+function enableDownloadButton(videoUrl) {
+  const downloadBtn = document.getElementById('download-btn');
+  let countdown = 5;
+  
+  const interval = setInterval(() => {
+    if (countdown <= 0) {
+      clearInterval(interval);
+      downloadBtn.disabled = false;
+      downloadBtn.textContent = '📥 Download Video';
+      downloadBtn.onclick = () => {
+        // Trigger direct download
+        const a = document.createElement('a');
+        a.href = videoUrl;
+        a.download = '';
+        a.click();
+      };
+    } else {
+      downloadBtn.textContent = `Tunggu ${countdown}s...`;
+      countdown--;
+    }
+  }, 1000);
+}
+
+function showError(msg) {
+  document.getElementById('player-container').innerHTML = `<p class="error">❌ ${msg}</p>`;
+}
+
+// Init
 document.addEventListener('DOMContentLoaded', () => {
-  const video = document.getElementById('video-player');
-  
-  if (video) {
-    video.addEventListener('play', () => {
-      const overlay = document.getElementById('native-banner-overlay');
-      if (overlay) overlay.classList.remove('show');
-    });
-    
-    video.addEventListener('pause', () => {
-      const overlay = document.getElementById('native-banner-overlay');
-      if (overlay) overlay.classList.add('show');
-    });
-    
-    setTimeout(() => {
-      const overlay = document.getElementById('native-banner-overlay');
-      if (overlay && video.paused) {
-        overlay.classList.add('show');
-      }
-    }, 1000);
+  // Cek adblock sebelum load player
+  if (isAdBlockEnabled()) {
+    document.getElementById('adblock-warning')?.classList.remove('hidden');
+  } else {
+    resolveVideoUrl();
   }
-  
-  // Set social bar position
-  setTimeout(setRandomSocialBarPosition, 500);
 });
-// ============================================
-// RECHECK ADBLOCK ON WINDOW FOCUS
-// ============================================
-window.addEventListener('focus', () => {
-  setTimeout(() => {
-    handleAdblockDetection();
-  }, 300);
-});
-// ============================================
-// INITIAL ADBLOCK CHECK
-// ============================================
-setTimeout(() => {
-  handleAdblockDetection();
-}, 300);
+
+// Adblock detect (sama seperti safelink1)
+function isAdBlockEnabled() {
+  const test = document.createElement('div');
+  test.className = 'ad-test';
+  test.style.position = 'absolute';
+  test.style.left = '-9999px';
+  document.body.appendChild(test);
+  const blocked = test.offsetParent === null;
+  document.body.removeChild(test);
+  return blocked;
+}
 </script>
-</body>
-</html>
