@@ -1,150 +1,128 @@
-<!-- Tambahkan di <head> player.html -->
-<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
-<script>
-const WORKER_URL = 'video-extractor.intip-me69.workers.dev';
-const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('token');
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streaming Player</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --border: #334155; --primary: #2563eb; --danger: #ef4444; }
+    * { box-sizing: border-box; } body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .player-wrapper { background: #000; border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16/9; }
+    video, iframe { width: 100%; height: 100%; border: none; }
+    .adblock-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 10; }
+    .adblock-box { background: var(--card); padding: 24px; border-radius: 12px; max-width: 400px; border: 1px solid var(--danger); }
+    .btn-refresh { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px; }
+    .status-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px; background: var(--card); border-radius: 8px; }
+    .download-btn { padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
+    .download-btn:disabled { background: #475569; cursor: not-allowed; }
+    .error-msg { color: var(--danger); text-align: center; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="player-wrapper" id="playerContainer">
+      <div class="adblock-overlay" id="adblockOverlay">
+        <div class="adblock-box">
+          <h3>🛡️ Sistem Pendukung Tidak Aktif</h3>
+          <p>Video hanya dapat diputar jika sistem iklan berjalan.</p>
+          <p style="font-size:0.9em; color:#94a3b8;">Panduan Opera Mobile:<br>☰ → Settings → Ad blocking → Matikan → Refresh</p>
+          <button class="btn-refresh" onclick="location.reload()">🔄 Saya Sudah Matikan AdBlock</button>
+          <p style="font-size:0.8em; margin-top:12px;">Konten ini gratis karena didukung iklan. Terima kasih atas dukungan Anda. 🙏</p>
+        </div>
+      </div>
+      <video id="mainVideo" controls style="display:none;">
+        <source src="" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
-// Resolve URL terenkripsi
-async function resolveVideoUrl() {
-  if (!token) {
-    showError('Token tidak ditemukan');
-    return;
-  }
-  
-  try {
-    const res = await fetch(`${WORKER_URL}/api/resolve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: token })
-    });
-    
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    
-    // Setup video player
-    setupPlayer(data.url, data.source);
-    
-  } catch (e) {
-    showError('Gagal memuat video: ' + e.message);
-  }
-}
+    <div class="status-bar">
+      <span id="sourceLabel">🔍 Memverifikasi sistem...</span>
+      <button class="download-btn" id="dlBtn" disabled>⏳ Tunggu...</button>
+    </div>
+    <p class="error-msg hidden" id="errorMsg"></p>
+  </div>
 
-// Setup player berdasarkan source
-function setupPlayer(videoUrl, source) {
-  const videoEl = document.getElementById('main-video');
-  
-  if (source === 'cdn' && /\.(mp4|webm)/i.test(videoUrl)) {
-    // Direct video file
-    videoEl.src = videoUrl;
-    videoEl.style.display = 'block';
-    
-  } else if (['dood', 'streamtape', 'streamwish'].includes(source)) {
-    // Embed from third-party (gunakan iframe tersembunyi + overlay)
-    const embedUrl = getEmbedUrl(videoUrl, source);
-    showEmbeddedPlayer(embedUrl);
-    
-  } else if (['x', 'vk'].includes(source)) {
-    // Untuk X/VK: tampilkan pesan + fallback ke embed resmi
-    showFallbackEmbed(videoUrl, source);
-    
-  } else {
-    // Fallback: coba langsung sebagai video
-    videoEl.src = videoUrl;
-    videoEl.style.display = 'block';
-  }
-  
-  // Tampilkan tombol download (setelah iklan)
-  enableDownloadButton(videoUrl);
-}
+  <script>
+    const WORKER_URL = 'video-extractor.intip-me69.workers.dev';
+    const token = new URLSearchParams(window.location.search).get('token');
+    if (!token) window.location.href = '/';
 
-// Helper: Konversi URL ke embed URL untuk platform tertentu
-function getEmbedUrl(url, source) {
-  const embedMap = {
-    'dood': (u) => u.replace(/dood\.(?:stream|watch|so)/, 'dood.watch/e'),
-    'streamtape': (u) => u.replace('streamtape.com', 'streamtape.com/e'),
-    'streamwish': (u) => u.replace(/streamwish\.(?:com|to)/, 'streamwish.to/e')
-  };
-  return embedMap[source]?.(url) || url;
-}
-
-// Fallback untuk X/VK (karena tidak bisa direct)
-function showFallbackEmbed(originalUrl, source) {
-  const container = document.getElementById('player-container');
-  
-  if (source === 'x') {
-    // Gunakan Twitter Publish API oEmbed
-    const embedCode = `<blockquote class="twitter-tweet"><a href="${originalUrl}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>`;
-    container.innerHTML = embedCode;
-    
-  } else if (source === 'vk') {
-    // VK iframe embed (butuh video_id & hash dari URL)
-    const videoId = extractVkVideoId(originalUrl);
-    if (videoId) {
-      container.innerHTML = `<iframe src="https://vk.com/video_ext.php?oid=${videoId}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
+    // Adblock Check (Simple)
+    function checkAdBlock() {
+      const test = document.createElement('div');
+      test.className = 'ad-test'; test.style.cssText = 'position:absolute; left:-9999px;';
+      document.body.appendChild(test);
+      const blocked = test.offsetParent === null;
+      document.body.removeChild(test);
+      return blocked;
     }
-  }
-  
-  // Tampilkan pesan info
-  const info = document.createElement('p');
-  info.className = 'info-text';
-  info.textContent = '⚠️ Video dari platform ini ditampilkan via embed resmi. Download mungkin terbatas oleh kebijakan platform.';
-  container.after(info);
-}
 
-function extractVkVideoId(url) {
-  // Simple parser: https://vk.com/video-12345_67890 → -12345_67890
-  const match = url.match(/video(-?\d+_\d+)/);
-  return match ? match[1] : null;
-}
-
-// Enable download button dengan timer iklan
-function enableDownloadButton(videoUrl) {
-  const downloadBtn = document.getElementById('download-btn');
-  let countdown = 5;
-  
-  const interval = setInterval(() => {
-    if (countdown <= 0) {
-      clearInterval(interval);
-      downloadBtn.disabled = false;
-      downloadBtn.textContent = '📥 Download Video';
-      downloadBtn.onclick = () => {
-        // Trigger direct download
-        const a = document.createElement('a');
-        a.href = videoUrl;
-        a.download = '';
-        a.click();
-      };
-    } else {
-      downloadBtn.textContent = `Tunggu ${countdown}s...`;
-      countdown--;
+    if (!checkAdBlock()) {
+      document.getElementById('adblockOverlay').style.display = 'none';
+      initPlayer();
     }
-  }, 1000);
-}
 
-function showError(msg) {
-  document.getElementById('player-container').innerHTML = `<p class="error">❌ ${msg}</p>`;
-}
+    async function initPlayer() {
+      const videoEl = document.getElementById('mainVideo');
+      const dlBtn = document.getElementById('dlBtn');
+      const label = document.getElementById('sourceLabel');
+      const errorEl = document.getElementById('errorMsg');
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  // Cek adblock sebelum load player
-  if (isAdBlockEnabled()) {
-    document.getElementById('adblock-warning')?.classList.remove('hidden');
-  } else {
-    resolveVideoUrl();
-  }
-});
+      try {
+        const res = await fetch(`${WORKER_URL}/api/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: token })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Gagal memuat video');
 
-// Adblock detect (sama seperti safelink1)
-function isAdBlockEnabled() {
-  const test = document.createElement('div');
-  test.className = 'ad-test';
-  test.style.position = 'absolute';
-  test.style.left = '-9999px';
-  document.body.appendChild(test);
-  const blocked = test.offsetParent === null;
-  document.body.removeChild(test);
-  return blocked;
-}
-</script>
+        label.textContent = `✅ Sumber: ${data.source.toUpperCase()}`;
+
+        if (data.source === 'cdn' && /\.(mp4|webm)/i.test(data.url)) {
+          videoEl.src = data.url;
+          videoEl.style.display = 'block';
+          videoEl.play().catch(() => {});
+        } else if (['dood', 'streamtape', 'streamwish'].includes(data.source)) {
+          const embedUrl = data.url.includes('/e/') ? data.url : data.url.replace(/(?:stream|watch)\.(com|so)/, '$1/e/');
+          videoEl.outerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+        } else if (['x', 'vk'].includes(data.source)) {
+          document.getElementById('playerContainer').innerHTML = `
+            <div style="padding:40px; text-align:center;">
+              <h3>⚠️ Platform Terbatas</h3>
+              <p>Video dari ${data.source.toUpperCase()} hanya dapat diputar via embed resmi.</p>
+              <a href="${data.url}" target="_blank" style="color:var(--primary);">Buka di Sumber Asli ↗</a>
+            </div>`;
+          label.textContent = '🔗 Redirect ke Platform';
+          dlBtn.style.display = 'none';
+          return;
+        } else {
+          videoEl.src = data.url;
+          videoEl.style.display = 'block';
+        }
+
+        // Download Button Timer
+        let wait = 5;
+        dlBtn.disabled = true;
+        const waitTimer = setInterval(() => {
+          wait--;
+          dlBtn.textContent = `⏳ Tunggu ${wait}s...`;
+          if (wait <= 0) {
+            clearInterval(waitTimer);
+            dlBtn.disabled = false;
+            dlBtn.textContent = '📥 Download';
+            dlBtn.onclick = () => window.open(data.url, '_blank');
+          }
+        }, 1000);
+
+      } catch (e) {
+        errorEl.textContent = `❌ ${e.message}`;
+        errorEl.classList.remove('hidden');
+        label.textContent = '❌ Gagal memuat';
+      }
+    }
+  </script>
+</body>
+</html>
