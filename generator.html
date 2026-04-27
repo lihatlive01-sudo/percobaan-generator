@@ -7,7 +7,7 @@
   <style>
     :root {
       --primary: #2563eb; --bg: #0f172a; --card: #1e293b; 
-      --text: #e2e8f0; --border: #334155; --success: #10b981; --hover: #1d4ed8;
+      --text: #e2e8f0; --border: #334155; --success: #10b981; --hover: #1d4ed8; --danger: #ef4444;
     }
     * { box-sizing: border-box; }
     body {
@@ -189,7 +189,7 @@
       return 'unknown';
     }
 
-    // Generate Mode 1
+    // Generate Mode 1 (Safe Fetch)
     async function generateMode1() {
       const videoUrl = document.getElementById('videoUrl').value.trim();
       const subtitleUrl = document.getElementById('subtitleUrl').value.trim();
@@ -208,6 +208,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: downloadUrl, source: detectSource(videoUrl) })
         });
+
+        // ✅ Cek status HTTP sebelum parse JSON
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Worker Error ${res.status}: ${errText || 'Server tidak merespons'}`);
+        }
+
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
@@ -230,14 +237,15 @@
         document.getElementById('outputSection').style.display = 'block';
         showAlert('✅ Link berhasil dibuat! Silakan copy di bawah.');
       } catch (e) {
-        showAlert('❌ Error: ' + e.message, 'error');
+        showAlert('❌ ' + e.message, 'error');
+        console.error(e);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '⚡ Generate Links (Encrypted)';
       }
     }
 
-    // Generate Mode 2
+    // Generate Mode 2 (Safe Fetch)
     async function generateMode2() {
       const downloadUrl = document.getElementById('downloadUrlMode2').value.trim();
       if (!downloadUrl) { showAlert('❌ Link download wajib diisi!', 'error'); return; }
@@ -252,6 +260,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: downloadUrl, source: detectSource(downloadUrl) })
         });
+
+        // ✅ Cek status HTTP sebelum parse JSON
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Worker Error ${res.status}: ${errText || 'Server tidak merespons'}`);
+        }
+
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
@@ -269,7 +284,8 @@
         document.getElementById('outputSection').style.display = 'block';
         showAlert('✅ Safelink berhasil dibuat!');
       } catch (e) {
-        showAlert('❌ Error: ' + e.message, 'error');
+        showAlert('❌ ' + e.message, 'error');
+        console.error(e);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '⚡ Generate Safelink (Encrypted)';
