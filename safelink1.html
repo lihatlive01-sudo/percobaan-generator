@@ -1,92 +1,90 @@
-<!-- Tambahkan sebelum </body> di safelink1.html -->
-<script>
-// Konfigurasi
-const WORKER_URL = 'https://video-extractor.intip-me69.workers.dev/';
-const ADSTERRA_NATIVE = 'YOUR_ADSTERRA_NATIVE_BANNER_CODE'; // Ganti dengan kode kamu
-const ADSTERRA_POPUNDER = 'YOUR_ADSTERRA_POPUNDER_CODE';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safelink 1 - Continue Download</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --border: #334155; --primary: #2563eb; --success: #10b981; --danger: #ef4444; }
+    * { box-sizing: border-box; } body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+    .container { max-width: 600px; margin: 0 auto; background: var(--card); padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    h2 { text-align: center; margin-top: 0; }
+    .adblock-warn { background: #451a03; border: 1px solid #f97316; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+    .ad-container { background: #0f172a; border: 1px dashed var(--border); padding: 16px; margin: 12px 0; border-radius: 8px; text-align: center; min-height: 100px; display: flex; align-items: center; justify-content: center; color: #64748b; }
+    .timer-box { background: #0f172a; padding: 12px; border-radius: 8px; text-align: center; margin: 12px 0; }
+    .btn { display: block; width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 12px; transition: 0.2s; }
+    .btn:hover { background: #1d4ed8; } .btn:disabled { background: #475569; cursor: not-allowed; }
+    .info { font-size: 0.85rem; color: #94a3b8; margin-top: 16px; text-align: center; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>⏳ Continue to Download</h2>
+    <p style="text-align:center; color:#94a3b8;">Mohon tunggu dan lihat iklan sponsor kami untuk melanjutkan download</p>
 
-// Parse token dari URL
-const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('token');
+    <div class="adblock-warn" id="adblockWarn">
+      🚫 <strong>Matikan AdBlock</strong><br>Untuk melanjutkan download, nonaktifkan pemblokir iklan Anda.
+    </div>
 
-if (!token) {
-  document.body.innerHTML = '<h2>❌ Link tidak valid</h2><a href="/">← Kembali</a>';
-}
+    <div class="ad-container" id="adTop">Sponsor Advertisement</div>
 
-// Deteksi Adblock (basic)
-function isAdBlockEnabled() {
-  const test = document.createElement('div');
-  test.innerHTML = '&nbsp;';
-  test.className = 'ad-test';
-  test.style.position = 'absolute';
-  test.style.left = '-9999px';
-  document.body.appendChild(test);
-  
-  const isBlocked = test.offsetParent === null || 
-                    getComputedStyle(test).display === 'none';
-  document.body.removeChild(test);
-  return isBlocked;
-}
+    <div class="timer-box" id="timerBox">
+      ⏱️ Tunggu <span id="countdown1">10</span> detik
+    </div>
 
-// Timer logic
-let countdown = 10;
-const timerEl = document.querySelector('#timer1'); // Sesuaikan selector
+    <div class="ad-container" id="adMid">Partner Advertisement</div>
 
-const timerInterval = setInterval(() => {
-  countdown--;
-  if (timerEl) timerEl.textContent = `Tunggu ${countdown} detik`;
-  
-  if (countdown <= 0) {
-    clearInterval(timerInterval);
-    unlockNextStep();
-  }
-}, 1000);
+    <button class="btn" id="continueBtn" disabled>🔓 Lanjut ke Halaman Download</button>
 
-// Unlock ke safelink2
-function unlockNextStep() {
-  // Tampilkan tombol "Lanjut"
-  const continueBtn = document.createElement('button');
-  continueBtn.textContent = '✅ Lanjut ke Download';
-  continueBtn.className = 'btn-continue';
-  continueBtn.onclick = () => {
-    // Trigger popunder ads (jika ada)
-    if (typeof showPopunder === 'function') showPopunder();
-    // Redirect ke safelink2
-    window.location.href = `/safelink2.html?token=${token}`;
-  };
-  document.querySelector('.ads-container')?.after(continueBtn);
-}
+    <div class="info">
+      📌 <strong>Cara Melanjutkan:</strong><br>
+      1. Tunggu hingga timer selesai<br>
+      2. Klik tombol di atas untuk lanjut
+    </div>
+  </div>
 
-// Load Adsterra Native Banner
-function loadAdsterra() {
-  const container = document.getElementById('adsterra-native');
-  if (container && ADSTERRA_NATIVE) {
-    container.innerHTML = ADSTERRA_NATIVE;
-  }
-}
+  <script>
+    // ⚠️ GANTI DENGAN URL CLOUDFLARE WORKER KAMU
+    const WORKER_URL = 'video-extractor.intip-me69.workers.dev';
+    
+    // Parse token
+    const token = new URLSearchParams(window.location.search).get('token');
+    if (!token) { document.body.innerHTML = '<h2 style="text-align:center; margin-top:40px;">❌ Link tidak valid</h2>'; }
 
-// Popunder trigger (opsional)
-function showPopunder() {
-  if (ADSTERRA_POPUNDER) {
-    const popup = window.open('about:blank', '_blank');
-    if (popup) {
-      popup.document.write(ADSTERRA_POPUNDER);
-      popup.document.close();
+    // Adblock Detection
+    function isAdBlockEnabled() {
+      const test = document.createElement('div');
+      test.className = 'ad-test'; test.style.cssText = 'position:absolute; left:-9999px;';
+      document.body.appendChild(test);
+      const blocked = test.offsetParent === null || getComputedStyle(test).display === 'none';
+      document.body.removeChild(test);
+      return blocked;
     }
-  }
-}
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  if (isAdBlockEnabled()) {
-    document.getElementById('adblock-warning')?.classList.remove('hidden');
-  }
-  loadAdsterra();
-});
-</script>
+    if (isAdBlockEnabled()) document.getElementById('adblockWarn').style.display = 'block';
 
-<!-- Tambahkan elemen placeholder untuk iklan -->
-<div id="adblock-warning" class="hidden warning-box">
-  🚫 Matikan AdBlock untuk melanjutkan download
-</div>
-<div id="adsterra-native" class="ads-container"></div>
+    // Timer Logic
+    let timeLeft = 10;
+    const countdownEl = document.getElementById('countdown1');
+    const btn = document.getElementById('continueBtn');
+    const timer = setInterval(() => {
+      timeLeft--;
+      countdownEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        btn.disabled = false;
+        document.getElementById('timerBox').innerHTML = '✅ Timer Selesai';
+      }
+    }, 1000);
+
+    // Redirect to safelink2
+    btn.addEventListener('click', () => {
+      window.location.href = `/safelink2.html?token=${token}`;
+    });
+
+    // Placeholder: Load Adsterra here if needed
+    // Example: document.getElementById('adTop').innerHTML = '<script src="..."><\/script>';
+  </script>
+</body>
+</html>
