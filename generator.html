@@ -1,126 +1,105 @@
-<script>
-  // ⚠️ PENTING: Ganti dengan URL Worker asli kamu
-  const WORKER_URL = 'https://video-extractor.intip-me69.workers.dev';
-
-  // Debug: Log konfigurasi
-  console.log('🔧 WORKER_URL:', WORKER_URL);
-  console.log('🌐 Current Origin:', window.location.origin);
-
-  // Tab Switching
-  function switchMode(mode, btn) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.mode-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(mode).classList.add('active');
-  }
-
-  // Copy to Clipboard
-  function copyToClipboard(elementId, btn) {
-    const el = document.getElementById(elementId);
-    el.select();
-    el.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(el.value).then(() => {
-      const original = btn.innerText;
-      btn.innerText = '✅ Copied!';
-      btn.classList.add('copied');
-      setTimeout(() => {
-        btn.innerText = original;
-        btn.classList.remove('copied');
-      }, 2000);
-    }).catch(err => {
-      console.error('Copy failed:', err);
-      alert('Gagal copy. Salin manual.');
-    });
-  }
-
-  // Alert System
-  function showAlert(message, type = 'success') {
-    const alert = document.getElementById('alertBox');
-    alert.textContent = message;
-    alert.className = `alert ${type}`;
-    alert.style.display = 'block';
-    setTimeout(() => alert.style.display = 'none', 5000);
-  }
-
-  // Source Detection
-  function detectSource(url) {
-    if (!url) return 'cdn';
-    if (/x\.com|twitter\.com/i.test(url)) return 'x';
-    if (/vk\.com|vkvideo\.ru/i.test(url)) return 'vk';
-    if (/dood\.(?:stream|watch|so)/i.test(url)) return 'dood';
-    if (/streamtape\.com/i.test(url)) return 'streamtape';
-    if (/streamwish\.com/i.test(url)) return 'streamwish';
-    if (/\.(mp4|webm|mkv)(\?|$)/i.test(url)) return 'cdn';
-    return 'unknown';
-  }
-
-  // Generate Mode 1 (Dengan Debug Lengkap)
-  async function generateMode1() {
-    const videoUrl = document.getElementById('videoUrl').value.trim();
-    const subtitleUrl = document.getElementById('subtitleUrl').value.trim();
-    let downloadUrl = document.getElementById('downloadUrlMode1').value.trim();
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generator</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:20px;margin:0}
+    .container{max-width:600px;margin:0 auto;background:#1e293b;padding:20px;border-radius:12px}
+    h1{text-align:center;margin:0 0 16px}
+    .form-group{margin-bottom:16px}
+    label{display:block;margin-bottom:6px;font-weight:500}
+    input{width:100%;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff}
+    .btn{width:100%;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+    .btn:disabled{background:#475569;cursor:not-allowed}
+    .output{margin-top:20px;padding-top:16px;border-top:1px solid #334155;display:none}
+    .output input{background:#0f172a;margin-bottom:8px}
+    .alert{padding:10px;margin-top:12px;border-radius:6px;text-align:center;display:none}
+    .alert.success{background:#064e3b;color:#34d399}
+    .alert.error{background:#7f1d1d;color:#f87171}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Generator</h1>
     
-    console.log('📥 Input:', { videoUrl, subtitleUrl, downloadUrl });
+    <div class="form-group">
+      <label>🔗 URL Video / Download *</label>
+      <input type="url" id="inputUrl" placeholder="https://example.com/video.mp4" required>
+    </div>
     
-    if (!videoUrl) { showAlert('❌ Link video wajib diisi!', 'error'); return; }
-    if (!downloadUrl) downloadUrl = videoUrl;
+    <button class="btn" id="genBtn" onclick="generate()">⚡ Generate Link</button>
+    
+    <div class="alert" id="alert"></div>
+    
+    <div class="output" id="output">
+      <label>📥 Safelink:</label>
+      <input type="text" id="resultUrl" readonly onclick="this.select()">
+      <button class="btn" style="background:#10b981;margin-top:8px" onclick="copyResult()">📋 Copy</button>
+    </div>
+  </div>
 
-    const btn = document.getElementById('generateBtn1');
-    const originalBtnText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading"></span> Generating...';
+  <script>
+    // ⚠️ GANTI DENGAN URL WORKER KAMU
+    const WORKER_URL = 'https://video-extractor.intip-me69.workers.dev';
 
-    try {
-      console.log('📡 Fetching:', `${WORKER_URL}/api/generate`);
+    async function generate() {
+      const url = document.getElementById('inputUrl').value.trim();
+      const btn = document.getElementById('genBtn');
+      const alert = document.getElementById('alert');
+      const output = document.getElementById('output');
       
-      const res = await fetch(`${WORKER_URL}/api/generate`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ 
-          url: downloadUrl, 
-          source: detectSource(videoUrl) 
-        }),
-        mode: 'cors'
-      });
-
-      console.log('📤 Response Status:', res.status, res.statusText);
-      console.log('📤 Response Headers:', [...res.headers.entries()]);
-
-      // Baca response text dulu untuk debug
-      const responseText = await res.text();
-      console.log('📤 Raw Response:', responseText);
-
-      if (!res.ok) {
-        throw new Error(`Worker Error ${res.status}: ${responseText || 'Server tidak merespons'}`);
+      if (!url) {
+        alert.textContent = '❌ URL wajib diisi';
+        alert.className = 'alert error';
+        alert.style.display = 'block';
+        return;
       }
 
-      // Parse JSON setelah pastikan status OK
-      let data;
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating...';
+      alert.style.display = 'none';
+
       try {
-        data = JSON.parse(responseText);
+        const res = await fetch(WORKER_URL + '/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, source: 'cdn' }),
+          mode: 'cors'
+        });
+
+        const text = await res.text();
+        if (!res.ok) throw new Error('Error ' + res.status + ': ' + text);
+        
+        const data = JSON.parse(text);
+        if (data.error) throw new Error(data.error);
+
+        document.getElementById('resultUrl').value = data.shortUrl;
+        output.style.display = 'block';
+        alert.textContent = '✅ Berhasil!';
+        alert.className = 'alert success';
+        alert.style.display = 'block';
+
       } catch (e) {
-        throw new Error(`Response bukan JSON valid: ${responseText}`);
+        alert.textContent = '❌ ' + e.message;
+        alert.className = 'alert error';
+        alert.style.display = 'block';
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Generate Link';
       }
+    }
 
-      if (data.error) throw new Error(data.error);
-
-      const baseUrl = window.location.origin;
-      const playerLink = `${baseUrl}/player.html?token=${data.code}`;
-      
-      document.getElementById('playerEmbedResult').value = playerLink;
-      document.getElementById('safelinkResult').value = data.shortUrl;
-      
-      document.getElementById('gistPreview').value = JSON.stringify({
-        id: Math.random().toString(36).substr(2, 8),
-        player: playerLink,
-        safelink: data.shortUrl,
-        source: detectSource(videoUrl),
-        subtitle: subtitleUrl || null,
-        created: new Date().toISOString()
-      }, null, 2);
-
-      document.getElementById('outputSection').style.display = 'block';
-      showAlert('✅ Link berhasil dibuat! Silakan copy di bawah.');
+    function copyResult() {
+      const el = document.getElementById('resultUrl');
+      el.select();
+      navigator.clipboard.writeText(el.value).then(() => {
+        alert('✅ Disalin!');
+      });
+    }
+  </script>
+</body>
+</html>
